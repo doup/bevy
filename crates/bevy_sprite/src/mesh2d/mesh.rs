@@ -1,5 +1,5 @@
-use bevy_app::Plugin;
-use bevy_asset::{load_internal_asset, Handle, HandleUntyped};
+use bevy_app::{CoreStage, Plugin};
+use bevy_asset::{load_internal_asset, Assets, Handle, HandleUntyped};
 use bevy_ecs::{
     prelude::*,
     system::{lifetimeless::*, SystemParamItem, SystemState},
@@ -10,6 +10,7 @@ use bevy_render::{
     extract_component::{ComponentUniforms, DynamicUniformIndex, UniformComponentPlugin},
     globals::{GlobalsBuffer, GlobalsUniform},
     mesh::{GpuBufferInfo, Mesh, MeshVertexBufferLayout},
+    primitives::Aabb,
     render_asset::RenderAssets,
     render_phase::{EntityRenderCommand, RenderCommandResult, TrackedRenderPass},
     render_resource::*,
@@ -19,6 +20,7 @@ use bevy_render::{
     },
     view::{
         ComputedVisibility, ExtractedView, ViewTarget, ViewUniform, ViewUniformOffset, ViewUniforms,
+        NoFrustumCulling, VisibilitySystems,
     },
     Extract, RenderApp, RenderStage,
 };
@@ -95,7 +97,11 @@ impl Plugin for Mesh2dRenderPlugin {
         );
         load_internal_asset!(app, MESH2D_SHADER_HANDLE, "mesh2d.wgsl", Shader::from_wgsl);
 
-        app.add_plugin(UniformComponentPlugin::<Mesh2dUniform>::default());
+        app.add_plugin(UniformComponentPlugin::<Mesh2dUniform>::default())
+            .add_system_to_stage(
+                CoreStage::PostUpdate,
+                calculate_bounds.label(VisibilitySystems::CalculateBounds),
+            );
 
         if let Ok(render_app) = app.get_sub_app_mut(RenderApp) {
             render_app
@@ -104,6 +110,20 @@ impl Plugin for Mesh2dRenderPlugin {
                 .add_system_to_stage(RenderStage::Extract, extract_mesh2d)
                 .add_system_to_stage(RenderStage::Queue, queue_mesh2d_bind_group)
                 .add_system_to_stage(RenderStage::Queue, queue_mesh2d_view_bind_groups);
+        }
+    }
+}
+
+pub fn calculate_bounds(
+    mut commands: Commands,
+    meshes: Res<Assets<Mesh>>,
+    without_aabb: Query<(Entity, &Mesh2dHandle), (Without<Aabb>, Without<NoFrustumCulling>)>,
+) {
+    for (entity, mesh_handle) in without_aabb.iter() {
+        if let Some(mesh) = meshes.get(&mesh_handle.0) {
+            if let Some(aabb) = mesh.compute_aabb() {
+                commands.entity(entity).insert(aabb);
+            }
         }
     }
 }
