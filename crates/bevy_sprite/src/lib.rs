@@ -34,6 +34,7 @@ use bevy_reflect::TypeUuid;
 use bevy_render::{
     render_phase::AddRenderCommand,
     render_resource::{Shader, SpecializedRenderPipelines},
+    view::VisibilitySystems,
     RenderApp, RenderStage,
 };
 
@@ -59,7 +60,11 @@ impl Plugin for SpritePlugin {
             .register_type::<Anchor>()
             .register_type::<Mesh2dHandle>()
             .add_plugin(Mesh2dRenderPlugin)
-            .add_plugin(ColorMaterialPlugin);
+            .add_plugin(ColorMaterialPlugin)
+            .add_system_to_stage(
+                CoreStage::PostUpdate,
+                render::calculate_bounds.label(VisibilitySystems::CalculateBounds),
+            );
 
         if let Ok(render_app) = app.get_sub_app_mut(RenderApp) {
             render_app

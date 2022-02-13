@@ -10,10 +10,11 @@ use bevy_ecs::{
     prelude::*,
     system::{lifetimeless::*, SystemParamItem, SystemState},
 };
-use bevy_math::{Rect, Vec2};
+use bevy_math::{Rect, Vec2, Vec3A};
 use bevy_reflect::Uuid;
 use bevy_render::{
     color::Color,
+    primitives::Aabb,
     render_asset::RenderAssets,
     render_phase::{
         BatchedPhaseItem, DrawFunctions, EntityRenderCommand, RenderCommand, RenderCommandResult,
@@ -25,8 +26,8 @@ use bevy_render::{
         BevyDefault, DefaultImageSampler, GpuImage, Image, ImageSampler, TextureFormatPixelInfo,
     },
     view::{
-        ComputedVisibility, ExtractedView, Msaa, ViewTarget, ViewUniform, ViewUniformOffset,
-        ViewUniforms, VisibleEntities,
+        ComputedVisibility, ExtractedView, Msaa, NoFrustumCulling, ViewTarget, ViewUniform,
+        ViewUniformOffset, ViewUniforms, VisibleEntities,
     },
     Extract,
 };
@@ -259,6 +260,26 @@ impl SpecializedRenderPipeline for SpritePipeline {
                 alpha_to_coverage_enabled: false,
             },
             label: Some("sprite_pipeline".into()),
+        }
+    }
+}
+
+pub fn calculate_bounds(
+    mut commands: Commands,
+    images: Res<Assets<Image>>,
+    without_aabb: Query<
+        (Entity, &Sprite, &Handle<Image>),
+        (Without<Aabb>, Without<NoFrustumCulling>),
+    >,
+) {
+    for (entity, sprite, texture_handle) in without_aabb.iter() {
+        if let Some(image) = images.get(texture_handle) {
+            let size = sprite.custom_size.unwrap_or_else(|| image.size());
+            let aabb = Aabb {
+                center: Vec3A::ZERO,
+                half_extents: (size.extend(0.0) * 0.5).into(),
+            };
+            commands.entity(entity).insert(aabb);
         }
     }
 }
