@@ -267,12 +267,17 @@ impl SpecializedRenderPipeline for SpritePipeline {
 pub fn calculate_bounds(
     mut commands: Commands,
     images: Res<Assets<Image>>,
-    without_aabb: Query<
+    atlases: Res<Assets<TextureAtlas>>,
+    sprite_without_aabb: Query<
         (Entity, &Sprite, &Handle<Image>),
         (Without<Aabb>, Without<NoFrustumCulling>),
     >,
+    atlas_without_aabb: Query<
+        (Entity, &TextureAtlasSprite, &Handle<TextureAtlas>),
+        (Without<Aabb>, Without<NoFrustumCulling>),
+    >,
 ) {
-    for (entity, sprite, texture_handle) in without_aabb.iter() {
+    for (entity, sprite, texture_handle) in sprite_without_aabb.iter() {
         if let Some(image) = images.get(texture_handle) {
             let size = sprite.custom_size.unwrap_or_else(|| image.size());
             let aabb = Aabb {
@@ -280,6 +285,21 @@ pub fn calculate_bounds(
                 half_extents: (size.extend(0.0) * 0.5).into(),
             };
             commands.entity(entity).insert(aabb);
+        }
+    }
+
+    for (entity, atlas_sprite, atlas_handle) in atlas_without_aabb.iter() {
+        if let Some(atlas) = atlases.get(atlas_handle) {
+            if let Some(rect) = atlas.textures.get(atlas_sprite.index) {
+                let size = atlas_sprite
+                    .custom_size
+                    .unwrap_or_else(|| (rect.min - rect.max).abs());
+                let aabb = Aabb {
+                    center: Vec3A::ZERO,
+                    half_extents: (size.extend(0.0) * 0.5).into(),
+                };
+                commands.entity(entity).insert(aabb);
+            }
         }
     }
 }
