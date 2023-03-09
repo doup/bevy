@@ -15,6 +15,7 @@ fn main() {
 fn spawn(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
+    let gap = Val::Px(8.0);
     let text_style = TextStyle {
         font: asset_server.load("fonts/FiraSans-Bold.ttf"),
         font_size: 14.0,
@@ -26,6 +27,8 @@ fn spawn(mut commands: Commands, asset_server: Res<AssetServer>) {
             style: Style {
                 flex_direction: FlexDirection::Column,
                 size: Size::new(Val::Percent(100.), Val::Percent(100.)),
+                gap: Size::all(gap),
+                padding: UiRect::all(gap),
                 ..Default::default()
             },
             background_color: Color::BLACK.into(),
@@ -37,10 +40,8 @@ fn spawn(mut commands: Commands, asset_server: Res<AssetServer>) {
         let row_id = commands
             .spawn(NodeBundle {
                 style: Style {
-                    flex_direction: FlexDirection::Row,
-                    justify_content: JustifyContent::SpaceAround,
-                    align_items: AlignItems::Center,
                     size: Size::new(Val::Percent(100.), Val::Percent(50.)),
+                    gap: Size::all(Val::Px(8.0)),
                     ..Default::default()
                 },
                 ..Default::default()
@@ -63,7 +64,9 @@ fn spawn(mut commands: Commands, asset_server: Res<AssetServer>) {
                     style: Style {
                         justify_content: justification,
                         flex_direction: FlexDirection::Column,
-                        size: Size::new(Val::Percent(16.), Val::Percent(95.)),
+                        size: Size::new(Val::Undefined, Val::Percent(100.)),
+                        flex_grow: 1.,
+                        flex_basis: Val::Px(0.),
                         overflow: Overflow::Hidden,
                         ..Default::default()
                     },
@@ -76,7 +79,8 @@ fn spawn(mut commands: Commands, asset_server: Res<AssetServer>) {
                 format!("JustifyContent::{justification:?}"),
                 format!("LineBreakOn::{linebreak_behaviour:?}"),
                 "Line 1\nLine 2\nLine 3".to_string(),
-                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas auctor, nunc ac faucibus fringilla.".to_string(),
+                // Uncomment for total breakage
+                // "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas auctor, nunc ac faucibus fringilla.".to_string(),
             ];
 
             for (j, message) in messages.into_iter().enumerate() {
